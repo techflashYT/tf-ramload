@@ -1,0 +1,91 @@
+====== PROJECT IDEA ======
+NAME: Techflash RAMLoad
+DRAFT VERSION: 0.4
+DESCRIPTION:
+===> DESCRIPTION START
+This project will be written in shell script using busybox.
+
+Have the user pick a distro into a tmpfs, then SSH in and use it however they please.
+Any other use can log in, but gets an error message and is kicked out immediately.
+
+Perhaps autodetect if the user left the machine on after compiling, then reboot?
+(Has the machine had less than 20% CPU load on all cores for over 24h?)
+
+
+On startup:
+It scans all partitions on all disks for a distro/shared storage identifier.
+It adds any distros it finds to the list.
+
+It starts up SSH with any SSH keys and corresponding users found in the shared storage.
+When a user logs in, it is logged something like this:
+`[*date & time*] [INFO] Username "*username*" logged into with IP address *ip*`
+
+Then when 1 is picked, it mounts it, then `rsync`'s it into a tmpfs, and also copies specified files from shared storage.  It also logs this in the same format:
+`[*date & time*] [INFO] Logged in user picked "*distro*".  Now loading...`
+`[*date & time*] [INFO] Distro loading into RAM took 39.64s!  Now preparing...`
+`[*date & time*] [INFO] Distro preparation took 0.93s!  Now booting...`
+`[*date & time*] [INFO] Leaving Techflash RAMLoad to boot "*distro*".`
+
+
+It loads *everything* from disk into RAM, so there's high load time.
+Maybe need to optimize by giving it 2 disks: One on the HDD, one on the SSD.
+Then store the most used distros on the SSD for faster loading.
+
+It then mounts any necessary filesystems, and starts /sbin/init from the new distro.
+
+The user's SSH keys are added from their respective user in the initramfs to root.
+
+The user is given progress updates on all of this going on, and then it kills sshd from the initramfs *just before* the distro starts to boot.
+So they are told to give it about a minute to boot, then SSH in as either their user, or as root.
+
+Manual backups are taken after every manual update, since the user could easily trash the entire disk, since they are root.
+===> DESCRIPTION END
+
+=== SECURITY ISSUES ===
+1. User could easily trash the entire physical disk intentionally once booted into a distro.
+   Obviously we will be fine with more naive methods of destruction (e.g. rm -rf --no-preserve-root /)
+   Or anything really that just trashes the rootfs.  But anybody that goes out of their way to fuck around
+   with the block devices like /dev/vda1 or the like could easily cause damage.
+
+
+
+=== CURRENT MITIGATIONS FOR SECURITY ISSUES ===
+1. Upon reboot, have a sanity check server to test against, with clean copies of everything.
+   Anything changed? (rsync -aP --dry-run will show anything)  Then check the logs for the last logged in user, and send them to jesus.
+   Notify Techflash about the event, delete the user, and I can notify them that they did some sketchy shit and got banned.
+   If changes are found, `dd` over an entire clean partition over the network, as `rsync` won't be enough to restore it.
+   If a user logs in during this process, notify them that:
+   "A security issue has been detected on the system from a previously logged in user.  An automated restore is commencing.  Please wait for this restore to finish.", and they get kicked out of SSH.
+
+   A big issue with this is that the startup time will be EVEN LONGER.
+   
+
+
+
+Everybody who wants to use it gives me their SSH keys, and I make them a user on the shared storage (which the initramfs uses for configuration)
+The storage setup is as follows:
+1. Gets a list of all block devices
+2. Loop over each
+3. mount them in a temporary directory
+4. Check for `.tf_ramload_info`
+5. Has it?  Continue below.  Doesn't?  Skip to step 7.
+6. Parse it.  Extract the distro's:
+    - Name
+    - Hand-calculated estimated load time based on:
+        - Where it is located (HDD or SSD)
+        - Size of distro
+        - Amount of files in the distro
+7. We've parsed the distro information.  Add it to the list and go back to step 2 with the next device/partition.
+7. Check for `.tf_ramload_shared_storage`
+8. Has it?  It's shared storage, continue below.  Otherwise, it's neither, so skip it, and go back to step 2.
+
+
+
+Upon SSH, it is in the initramfs, and it gives you an ncurses TUI, pick a distro:
+- Arch Latest
+- Debian 12
+- Debian Testing+Unstable+Experimental
+- Ubuntu Server (minimal) 22.04 LTS
+- Void Linux Latest
+- AlmaLinux 9.2
+====== END PROJECT IDEA ======
