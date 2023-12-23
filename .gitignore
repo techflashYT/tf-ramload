@@ -1,3 +1,5 @@
 _buildTmp
 *.o
 busybox
+linux
+*.tar*
