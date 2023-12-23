@@ -10,30 +10,54 @@ MODULES=(
 )
 
 build="$PWD/_buildTmp"
-busyboxDir="$PWD/busybox-1.36.1"
+busyboxDir="$PWD/busybox"
 busyboxFile="https://busybox.net/downloads/busybox-1.36.1.tar.bz2"
 busyboxConfig="busyboxConfig"
+linuxKernelFile="https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.8.tar.xz"
+linuxKernelDir="linux"
 
 FILES=(
     "$PWD/ramload.sh:/init"
     "$busyboxDir/busybox:/bin/busybox"
 )
 
+function dload() {
+    dir="$1"
+    file="$2"
+    config="$3"
+    name="$4"
+
+    localfname="$(basename $file)"
+    if ! [ -d "$dir" ]; then
+        wget "$file"
+        exitCode=$?
+        if [ $exitCode != 0 ]; then
+            echo "$name download failed with exit code $exitCode" >&2
+            exit 1
+        fi
+        tar xf "$localfname"
+        # e.g. move busybox-1.36.1 to busybox
+        mv "$(echo "$localfname" | sed 's/\.tar.*//g')" "$dir"
+
+        if [ "$config" != "" ]; then
+            cp "$config" "$dir/.config"
+        fi
+
+        rm "$localfname"
+    fi
+}
+
+
 rm -rf "$build"
 mkdir "$build"
 
 
 # check if we have busybox
-if ! [ -d "$busyboxDir" ]; then
-    wget "$busyboxFile"
-    exitCode=$?
-    if [ $exitCode != 0 ]; then
-        echo "Busybox download failed with exit code $exitCode" >&2
-        exit 1
-    fi
-    tar xf "$busyboxFile"
-    cp "$busyboxConfig" "$busyboxDir/.config"
-fi
+dload "$busyboxDir" "$busyboxFile" "$busyboxConfig" "Busybox"
+
+
+
+
 
 # build busybox
 pushd "$busyboxDir" > /dev/null
