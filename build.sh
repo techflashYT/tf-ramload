@@ -79,8 +79,9 @@ cp "$kernelPath" "$build/"
 
 # make base initrd structure
 pushd "$build/initramfs" > /dev/null
-mkdir -p usr/bin usr/lib usr/share etc
+mkdir -p usr/bin usr/sbin usr/lib usr/share etc
 ln -s usr/bin bin
+ln -s usr/sbin sbin
 ln -s usr/lib lib
 ln -s usr/lib usr/lib64
 ln -s usr/lib64 lib64
