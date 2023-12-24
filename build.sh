@@ -12,17 +12,29 @@
 # )
 
 build="$PWD/_buildTmp"
-busyboxDir="$PWD/busybox"
+
+busyboxDir="$PWD/deps/busybox"
 busyboxFile="https://busybox.net/downloads/busybox-1.36.1.tar.bz2"
-busyboxConfig="busyboxConfig"
+busyboxConfig="$PWD/busyboxConfig"
+
 linuxFile="https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.8.tar.xz"
-linuxDir="linux"
-linuxConfig="linuxConfig"
+linuxDir="$PWD/deps/linux"
+linuxConfig="$PWD/linuxConfig"
 kernelPath="$linuxDir/arch/x86/boot/bzImage"
+
+util_linuxDir="$PWD/deps/util-linux"
+util_linuxFile="https://mirrors.edge.kernel.org/pub/linux/utils/util-linux/v2.39/util-linux-2.39.3.tar.xz"
+
+
+
 
 FILES=(
     "$PWD/ramload.sh:/init"
-    "$busyboxDir/busybox:/bin/busybox"
+    "$busyboxDir/busybox:/usr/bin/busybox"
+    "$util_linuxDir/.libs/blkid:/usr/bin/blkid"
+    "$util_linuxDir/.libs/libblkid.so:/usr/lib/libblkid.so"
+    "$util_linuxDir/.libs/libblkid.so.1:/usr/lib/libblkid.so.1"
+    "$util_linuxDir/.libs/libblkid.so.1.1.0:/usr/lib/libblkid.so.1.1.0"
 )
 
 function dload() {
@@ -32,6 +44,7 @@ function dload() {
     name="$4"
 
     localfname="$(basename "$file")"
+    mkdir -p "$(dirname "$dir")"
     if ! [ -d "$dir" ]; then
         wget "$file"
         exitCode=$?
@@ -63,6 +76,8 @@ dload "$busyboxDir" "$busyboxFile" "$busyboxConfig" "Busybox"
 # check if we have the Linux kernel
 dload "$linuxDir" "$linuxFile" "$linuxConfig" "Linux kernel"
 
+# check if we have util-linux
+dload "$util_linuxDir" "$util_linuxFile" "" "util-linux"
 
 
 # build busybox
@@ -78,7 +93,13 @@ popd > /dev/null || exit 1
 cp "$kernelPath" "$build/"
 
 
-
+# build util-linux
+pushd "$util_linuxDir" > /dev/null || exit 1
+if ! [ -f Makefile ]; then
+    ./configure
+    # we only need blkid
+    make blkid -j"$(nproc)"
+fi
 
 # make base initrd structure
 pushd "$build/initramfs" > /dev/null || exit 1
