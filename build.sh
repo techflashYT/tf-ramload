@@ -54,7 +54,7 @@ function dload() {
         fi
         tar xf "$localfname"
         # e.g. move busybox-1.36.1 to busybox
-        mv "${localfname//\.tar.*//g}" "$dir"
+        mv "${localfname//\.tar.*//}" "$dir"
         # mv "$(echo "$localfname" | sed 's/\.tar.*//g')" "$dir"
 
         if [ "$config" != "" ]; then
