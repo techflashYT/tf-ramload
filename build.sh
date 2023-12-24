@@ -31,10 +31,10 @@ util_linuxFile="https://mirrors.edge.kernel.org/pub/linux/utils/util-linux/v2.39
 FILES=(
     "$PWD/ramload.sh:/init"
     "$busyboxDir/busybox:/usr/bin/busybox"
-    "$util_linuxDir/.libs/blkid:/usr/bin/blkid"
-    "$util_linuxDir/.libs/libblkid.so:/usr/lib/libblkid.so"
-    "$util_linuxDir/.libs/libblkid.so.1:/usr/lib/libblkid.so.1"
-    "$util_linuxDir/.libs/libblkid.so.1.1.0:/usr/lib/libblkid.so.1.1.0"
+    "$util_linuxDir/blkid:/usr/bin/blkid"
+    #"$util_linuxDir/.libs/libblkid.so:/usr/lib/libblkid.so"
+    #"$util_linuxDir/.libs/libblkid.so.1:/usr/lib/libblkid.so.1"
+    #"$util_linuxDir/.libs/libblkid.so.1.1.0:/usr/lib/libblkid.so.1.1.0"
 )
 
 function dload() {
@@ -96,10 +96,16 @@ cp "$kernelPath" "$build/"
 # build util-linux
 pushd "$util_linuxDir" > /dev/null || exit 1
 if ! [ -f Makefile ]; then
-    ./configure
-    # we only need blkid
-    make blkid -j"$(nproc)"
+    export CFLAGS=-static
+    export SUID_CFLAGS=-static
+    export SUID_LDFLAGS=-static
+    export CPPFLAGS=-static
+    export LDFLAGS=-static
+    ./configure --enable-static-programs=blkid --disable-shared
 fi
+# we only need blkid
+make blkid -j"$(nproc)" LDFLAGS="--static"
+popd > /dev/null || exit 1
 
 # make base initrd structure
 pushd "$build/initramfs" > /dev/null || exit 1
