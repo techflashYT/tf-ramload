@@ -3,3 +3,4 @@ _buildTmp
 busybox
 linux
 *.tar*
+*.qcow2
