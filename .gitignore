@@ -1,6 +1,5 @@
 _buildTmp
 *.o
-busybox
-linux
+deps
 *.tar*
 *.qcow2
