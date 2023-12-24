@@ -1,13 +1,15 @@
-MODULES=(
-    virtio_net net_failover
-    virtio_blk virtio_console
-    virtio_balloon virtio_scsi
-    virtio_pci virtio_pci_legacy_dev
-    virtio_pci_modern_dev
-    i8042 bochs
-    drm_vram_helper
-    drm_ttm_helper
-)
+#!/bin/bash
+
+# MODULES=(
+#     virtio_net net_failover
+#     virtio_blk virtio_console
+#     virtio_balloon virtio_scsi
+#     virtio_pci virtio_pci_legacy_dev
+#     virtio_pci_modern_dev
+#     i8042 bochs
+#     drm_vram_helper
+#     drm_ttm_helper
+# )
 
 build="$PWD/_buildTmp"
 busyboxDir="$PWD/busybox"
@@ -29,7 +31,7 @@ function dload() {
     config="$3"
     name="$4"
 
-    localfname="$(basename $file)"
+    localfname="$(basename "$file")"
     if ! [ -d "$dir" ]; then
         wget "$file"
         exitCode=$?
@@ -39,7 +41,8 @@ function dload() {
         fi
         tar xf "$localfname"
         # e.g. move busybox-1.36.1 to busybox
-        mv "$(echo "$localfname" | sed 's/\.tar.*//g')" "$dir"
+        mv "${localfname//\.tar.*//g}" "$dir"
+        # mv "$(echo "$localfname" | sed 's/\.tar.*//g')" "$dir"
 
         if [ "$config" != "" ]; then
             cp "$config" "$dir/.config"
@@ -63,22 +66,22 @@ dload "$linuxDir" "$linuxFile" "$linuxConfig" "Linux kernel"
 
 
 # build busybox
-pushd "$busyboxDir" > /dev/null
-make -j$(nproc)
-popd > /dev/null
+pushd "$busyboxDir" > /dev/null || exit 1
+make -j"$(nproc)"
+popd > /dev/null || exit 1
 
 
 # build the Linux kernel
-pushd "$linuxDir" > /dev/null
-make -j$(nproc)
-popd > /dev/null
+pushd "$linuxDir" > /dev/null || exit 1
+make -j"$(nproc)"
+popd > /dev/null || exit 1
 cp "$kernelPath" "$build/"
 
 
 
 
 # make base initrd structure
-pushd "$build/initramfs" > /dev/null
+pushd "$build/initramfs" > /dev/null || exit 1
 mkdir -p usr/bin usr/sbin usr/lib usr/share etc
 ln -s usr/bin bin
 ln -s usr/sbin sbin
@@ -86,10 +89,10 @@ ln -s usr/lib lib
 ln -s usr/lib usr/lib64
 ln -s usr/lib64 lib64
 ln -s busybox bin/sh
-popd > /dev/null
+popd > /dev/null || exit 1
 
 # get the files and where they need to go
-for file in ${FILES[@]}; do
+for file in "${FILES[@]}"; do
     hostPath=$(echo $file | cut -f1 -d:)
     initrdPath=$(echo $file | cut -f2 -d:)
 
@@ -97,8 +100,8 @@ for file in ${FILES[@]}; do
     cp "$hostPath" "$build/initramfs$initrdPath"
 done
 
-pushd $build/initramfs > /dev/null
+pushd $build/initramfs > /dev/null || exit 1
 # find . | cpio -o --format='newc' | lz4 -3 - ../initramfs.img
 find . | cpio -o --format='newc' > ../initramfs.img
 
-popd > /dev/null
+popd > /dev/null || exit 1
