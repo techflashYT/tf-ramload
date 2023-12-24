@@ -13,7 +13,7 @@ debug() {
 }
 
 info() {
-    printf "[INFO] %s\n" "$1"
+    printf "\x1b[1;39m[INFO] %s\x1b[0m\n" "$1"
 }
 
 warn() {
