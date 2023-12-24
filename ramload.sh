@@ -15,11 +15,16 @@ for dev in $(echo /sys/class/block/* | tr ' ' '\n' | grep -vE 'loop[0-9]'); do
     # get some env vars about the disk
     eval "$(blkid -o export "/dev/$(basename "$dev")")"
 
+    # double check which one it is
+    if [ "$PTTYPE" != "" ] && [ "$TYPE" = "" ]; then
+        TYPE="$PTTYPE"
+    fi
+
     # print the info
-    echo "blkdev: $(basename "$dev"); size=$(($size * 512)) bytes; type=$PTTYPE"
+    echo "blkdev: $(basename "$dev"); size=$(($size * 512)) bytes; type=$TYPE"
 
     # print info about the type, particularly if it is odd
-    case "$PTTYPE" in
+    case "$TYPE" in
         "dos"|"gpt")
             str="a full disk w/ partition table, not a filesystem.  Skipping." ;;
         "")
@@ -32,7 +37,7 @@ for dev in $(echo /sys/class/block/* | tr ' ' '\n' | grep -vE 'loop[0-9]'); do
 some form of FAT.  EFI System Partition?  \
 Either way, neither suitable for a distro nor shared info partition.  Skipping." ;;
         *)
-            str="an unknown filesystem type \"$PTTYPE\"!  Please report this error!  Skipping." ;;
+            str="an unknown filesystem type \"$TYPE\"!  Please report this error!  Skipping." ;;
     esac
     unset PTUUID PARTUUID BLOCK_SIZE DEVNAME PART_SIZE TYPE UUID PARTLABEL PTTYPE
 
