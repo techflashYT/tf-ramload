@@ -42,13 +42,13 @@ FILES=(
     "$opensshDir/ssh:/usr/bin/ssh"
     "$opensshDir/sshd:/usr/bin/sshd"
     "$opensshDir/scp:/usr/bin/scp"
-    "${glibcDir}_install/lib/ld-linux-x86-64.so.2:/usr/lib/ld-linux-x86-64.so.2"
-    "${glibcDir}_install/lib/libc.so:/usr/lib/libc.so"
-    "${glibcDir}_install/lib/libc.so.6:/usr/lib/libc.so.6"
-    "${glibcDir}_install/lib/libm.so:/usr/lib/libm.so"
-    "${glibcDir}_install/lib/libresolv.so:/usr/lib/libresolv.so"
-    "${glibcDir}_install/lib/libresolv.so.2:/usr/lib/libresolv.so.2"
-    "${glibcDir}_install/bin/ldd:/usr/bin/ldd"
+    "${glibcDir}_install/lib64/ld-linux-x86-64.so.2:/usr/lib/ld-linux-x86-64.so.2"
+    "${glibcDir}_install/usr/lib64/libc.so:/usr/lib/libc.so"
+    "${glibcDir}_install/lib64/libc.so.6:/usr/lib/libc.so.6"
+    "${glibcDir}_install/usr/lib64/libm.so:/usr/lib/libm.so"
+    "${glibcDir}_install/usr/lib64/libresolv.so:/usr/lib/libresolv.so"
+    "${glibcDir}_install/lib64/libresolv.so.2:/usr/lib/libresolv.so.2"
+    "${glibcDir}_install/usr/bin/ldd:/usr/bin/ldd"
     "${glibcDir}_install/sbin/ldconfig:/usr/sbin/ldconfig"
 )
 
@@ -145,13 +145,17 @@ popd > /dev/null || exit 1
 
 mkdir "${glibcDir}_build" -p
 pushd "${glibcDir}_build" > /dev/null || exit 1
+
+# !!! !!! !!! WARNING !!! !!! !!!
+# If this goes wrong at any point, your system glibc may be overwritten
+# please do not run this as root!
 if ! [ -f Makefile ]; then
     "${glibcDir}/configure" \
-    --prefix="${glibcDir}_install"
+    --prefix="/usr"
 fi
 make -j"$(nproc)"
-if ! [ -f "${glibcDir}_install/lib/ld-linux-x86-64.so.2" ]; then
-    make -j"$(nproc)" install
+if ! [ -f "${glibcDir}_install/lib64/ld-linux-x86-64.so.2" ]; then
+    make -j"$(nproc)" DESTDIR="${glibcDir}_install" install
 fi
 popd > /dev/null || exit 1
 
@@ -173,7 +177,7 @@ for file in "${FILES[@]}"; do
     initrdPath=$(echo "$file" | cut -f2 -d:)
 
     echo "copying $hostPath to $build/initramfs$initrdPath"
-    cp "$hostPath" "$build/initramfs$initrdPath"
+    cp -d "$hostPath" "$build/initramfs$initrdPath"
 done
 
 pushd "$build/initramfs" > /dev/null || exit 1
