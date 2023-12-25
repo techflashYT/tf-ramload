@@ -30,6 +30,10 @@ mount -t devtmpfs devtmpfs /dev
 debug "Filesystems mounted"
 
 
+debug "Updating ldconfig..."
+ldconfig
+debug "ldconfig updated"
+
 for dev in $(echo /sys/class/block/* | tr ' ' '\n' | grep -vE 'loop[0-9]'); do
     # get disk size
     size=$(cat "$dev/size")
