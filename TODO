@@ -1,13 +1,2 @@
-=== glibc ===
-- Fix prefix to /usr but set a DESTDIR on install
-    - (see LFS docs https://www.linuxfromscratch.org/lfs/view/stable/chapter05/glibc.html)
-    - This allows for having glibc not be broken, but with a risk.
-      If the DESTDIR gets messed up in any way, the user's system is hosed.
-
-=== Linux Config ===
-- Remove 802.11 stuff
-- Remove touchscreen stuff
-- Remove GPU (DRM) stuff
-
 === Build System ===
 - Cleanup the variables.  Make it autodetermine it when possible
