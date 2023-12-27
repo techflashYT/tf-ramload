@@ -23,10 +23,11 @@ warn() {
 # mount stuff
 debug "Mounting filesystems..."
 
-mkdir proc sys
+mkdir proc sys tmp
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
 mount -t devtmpfs devtmpfs /dev
+mount -t tmpfs tmpfs /tmp
 debug "Filesystems mounted"
 
 
@@ -80,6 +81,7 @@ Either way, neither suitable for a distro nor shared info partition.  Skipping."
         if [ -f /mnt/test/.tf_ramload_info ]; then
             . /mnt/test/.tf_ramload_info
             info "Found distro \"$DISTRO_NAME\" on disk type \"$DISK_TYPE\" with estimated load time of \"$LOAD_TIME\"!"
+            cp /mnt/test/.tf_ramload_info "/$(basename "$dev").found_distro"
             umount /mnt/test
         elif [ -f /mnt/test/.tf_ramload_shared_storage ]; then
             . /mnt/test/.tf_ramload_shared_storage
@@ -92,4 +94,28 @@ Either way, neither suitable for a distro nor shared info partition.  Skipping."
         fi
     fi
 done
+
+counter=0
+set -- ""
+for f in /*.found_distro; do
+    export counter=$(($counter + 1))
+    . "$f"
+
+    if [ "$@" = "" ]; then
+        set -- $counter "$DISTRO_NAME [$DISK_TYPE] (ETA $LOAD_TIME)"
+    else
+        set -- "$@" $counter "$DISTRO_NAME [$DISK_TYPE] (ETA $LOAD_TIME)"
+    fi
+done
+# Use dialog to create a menu from the menu items
+if [ "$WIDTH" = "" ]; then export WIDTH=80; fi
+if [ "$HEIGHT" = "" ]; then export HEIGHT=25; fi
+
+exec 3>&1
+dialog --no-collapse --menu "Please select an OS" "$WIDTH" "$HEIGHT" "$counter" "$@" 2>&1 1>&3
+exec 3>&-
+
+
+# Call goLoad with the selected disk
+goLoad "$disk"
 ash

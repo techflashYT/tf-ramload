@@ -31,6 +31,12 @@ opensshDir="$PWD/deps/openssh"
 glibcFile="https://ftp.gnu.org/gnu/glibc/glibc-2.38.tar.xz"
 glibcDir="$PWD/deps/glibc"
 
+dialogFile="https://invisible-mirror.net/archives/dialog/dialog-1.3-20231002.tgz"
+dialogDir="$PWD/deps/dialog"
+
+ncursesFile="https://ftp.gnu.org/gnu/ncurses/ncurses-6.4.tar.gz"
+ncursesDir="$PWD/deps/ncurses"
+
 
 FILES=(
     "$PWD/ramload.sh:/init"
@@ -46,10 +52,38 @@ FILES=(
     "${glibcDir}_install/usr/lib64/libc.so:/usr/lib/libc.so"
     "${glibcDir}_install/lib64/libc.so.6:/usr/lib/libc.so.6"
     "${glibcDir}_install/usr/lib64/libm.so:/usr/lib/libm.so"
+    "${glibcDir}_install/lib64/libm.so.6:/usr/lib/libm.so.6"
     "${glibcDir}_install/usr/lib64/libresolv.so:/usr/lib/libresolv.so"
     "${glibcDir}_install/lib64/libresolv.so.2:/usr/lib/libresolv.so.2"
     "${glibcDir}_install/usr/bin/ldd:/usr/bin/ldd"
     "${glibcDir}_install/sbin/ldconfig:/usr/sbin/ldconfig"
+    #"$ncursesDir/lib/libncurses.so:/usr/lib/libncurses.so"
+    #"$ncursesDir/lib/libncurses.so.6:/usr/lib/libncurses.so.6"
+    #"$ncursesDir/lib/libncurses.so.6.4:/usr/lib/libncurses.so.6.4"
+    "$ncursesDir/lib/libncursesw.so:/usr/lib/libncursesw.so"
+    "$ncursesDir/lib/libncursesw.so.6:/usr/lib/libncursesw.so.6"
+    "$ncursesDir/lib/libncursesw.so.6.4:/usr/lib/libncursesw.so.6.4"
+    #"$ncursesDir/lib/libpanel.so:/usr/lib/libpanel.so"
+    #"$ncursesDir/lib/libpanel.so.6:/usr/lib/libpanel.so.6"
+    #"$ncursesDir/lib/libpanel.so.6.4:/usr/lib/libpanel.so.6.4"
+    "$ncursesDir/lib/libpanelw.so:/usr/lib/libpanelw.so"
+    "$ncursesDir/lib/libpanelw.so.6:/usr/lib/libpanelw.so.6"
+    "$ncursesDir/lib/libpanelw.so.6.4:/usr/lib/libpanelw.so.6.4"
+    #"$ncursesDir/lib/libform.so:/usr/lib/libform.so"
+    #"$ncursesDir/lib/libform.so.6:/usr/lib/libform.so.6"
+    #"$ncursesDir/lib/libform.so.6.4:/usr/lib/libform.so.6.4"
+    "$ncursesDir/lib/libformw.so:/usr/lib/libformw.so"
+    "$ncursesDir/lib/libformw.so.6:/usr/lib/libformw.so.6"
+    "$ncursesDir/lib/libformw.so.6.4:/usr/lib/libformw.so.6.4"
+    # "$ncursesDir/lib/libmenu.so:/usr/lib/libmenu.so"
+    # "$ncursesDir/lib/libmenu.so.6:/usr/lib/libmenu.so.6"
+    # "$ncursesDir/lib/libmenu.so.6.4:/usr/lib/libmenu.so.6.4"
+    "$ncursesDir/lib/libmenuw.so:/usr/lib/libmenuw.so"
+    "$ncursesDir/lib/libmenuw.so.6:/usr/lib/libmenuw.so.6"
+    "$ncursesDir/lib/libmenuw.so.6.4:/usr/lib/libmenuw.so.6.4"
+
+    "$dialogDir/dialog:/usr/bin/dialog"
+    "/usr/share/terminfo/l/linux"
 )
 
 function dload() {
@@ -67,7 +101,12 @@ function dload() {
         fi
         tar xf "$localfname"
         # e.g. move busybox-1.36.1 to busybox
-        mv "${localfname//\.tar.*//}" "$dir"
+        case "$localfname" in
+            *.tar*) mv "${localfname//\.tar*/}" "$dir" ;;
+            *.tgz)  mv "${localfname//\.tgz/}" "$dir" ;;
+            *) echo "UNIMPLEMENTED FILE TYPE: $localfname" ;;
+        esac
+            
         # mv "$(echo "$localfname" | sed 's/\.tar.*//g')" "$dir"
 
         if [ "$config" != "" ]; then
@@ -98,6 +137,13 @@ dload "$opensshDir" "$opensshFile" "" "OpenSSH"
 # check if we have glibc
 dload "$glibcDir" "$glibcFile" "" "glibc"
 
+# check if we have ncurses
+dload "$ncursesDir" "$ncursesFile" "" "ncurses"
+
+# check if we have dialog
+dload "$dialogDir" "$dialogFile" "" "dialog app"
+
+
 # build busybox
 pushd "$busyboxDir" > /dev/null || exit 1
 make -j"$(nproc)"
@@ -120,6 +166,21 @@ fi
 make blkid -j"$(nproc)"
 popd > /dev/null || exit 1
 
+# build ncurses
+pushd "$ncursesDir" > /dev/null || exit 1
+if ! [ -f Makefile ]; then
+    ./configure --with-shared --enable-widec
+fi
+make -j8
+popd > /dev/null || exit 1
+
+# build dialog
+pushd "$dialogDir" > /dev/null || exit 1
+if ! [ -f makefile ]; then
+    ./configure --with-ncurses --without-ncursesw
+fi
+make -j8
+popd > /dev/null || exit 1
 
 # build OpenSSH
 pushd "$opensshDir" > /dev/null || exit 1
@@ -162,7 +223,7 @@ popd > /dev/null || exit 1
 
 # make base initrd structure
 pushd "$build/initramfs" > /dev/null || exit 1
-mkdir -p usr/bin usr/sbin usr/lib usr/share etc
+mkdir -p usr/bin usr/sbin usr/lib usr/share/terminfo/l etc
 ln -s usr/bin bin
 ln -s usr/sbin sbin
 ln -s usr/lib lib
