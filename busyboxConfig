@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Busybox version: 1.36.1
-# Sat Dec 23 22:48:57 2023
+# Tue Dec 26 20:17:59 2023
 #
 CONFIG_HAVE_DOT_CONFIG=y
 
@@ -697,7 +697,7 @@ CONFIG_FEATURE_MOUNT_OTHERTAB=y
 # CONFIG_FEATURE_SWAPON_PRI is not set
 # CONFIG_SWAPOFF is not set
 # CONFIG_FEATURE_SWAPONOFF_LABEL is not set
-# CONFIG_SWITCH_ROOT is not set
+CONFIG_SWITCH_ROOT=y
 # CONFIG_TASKSET is not set
 # CONFIG_FEATURE_TASKSET_FANCY is not set
 # CONFIG_FEATURE_TASKSET_CPULIST is not set
