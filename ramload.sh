@@ -101,6 +101,9 @@ for f in /*.found_distro; do
     export counter=$(($counter + 1))
     . "$f"
 
+    # Remove `.found_distro` and the leading `/`.
+    disk=$(echo "$f" | sed 's/\..*//' | cut -c 2-)
+    eval "distroNum_${counter}=$disk"
     if [ "$@" = "" ]; then
         set -- $counter "$DISTRO_NAME [$DISK_TYPE] (ETA $LOAD_TIME)"
     else
@@ -112,10 +115,17 @@ if [ "$WIDTH" = "" ]; then export WIDTH=80; fi
 if [ "$HEIGHT" = "" ]; then export HEIGHT=25; fi
 
 exec 3>&1
-dialog --no-collapse --menu "Please select an OS" "$WIDTH" "$HEIGHT" "$counter" "$@" 2>&1 1>&3
-exec 3>&-
+selection=$(dialog --menu "Please select an OS" $(($HEIGHT - 2)) $(($WIDTH - 4)) "$counter" "$@" 2>&1 1>&3)
 
+exec 3>&-
+clear
 
 # Call goLoad with the selected disk
-goLoad "$disk"
-ash
+echo "the selection is equal to $selection"
+disk="$(eval "echo \$distroNum_$selection")"
+
+# get rid of sshd to goLoad can be pid1
+killall -9 sshd
+
+echo "PID of ramload is $$"
+exec /goLoad "$disk"
