@@ -35,6 +35,11 @@ debug "Updating ldconfig..."
 ldconfig
 debug "ldconfig updated"
 
+touch /etc/group
+touch /etc/passwd
+addgroup -S sshd
+adduser -SH sshd -G sshd
+
 for dev in $(echo /sys/class/block/* | tr ' ' '\n' | grep -vE 'loop[0-9]'); do
     # get disk size
     size=$(cat "$dev/size")
@@ -94,7 +99,7 @@ Either way, neither suitable for a distro nor shared info partition.  Skipping."
         fi
     fi
 done
-
+ash
 counter=0
 set -- ""
 for f in /*.found_distro; do
@@ -110,13 +115,22 @@ for f in /*.found_distro; do
         set -- "$@" $counter "$DISTRO_NAME [$DISK_TYPE] (ETA $LOAD_TIME)"
     fi
 done
+ash
+
 # Use dialog to create a menu from the menu items
 if [ "$WIDTH" = "" ]; then export WIDTH=80; fi
 if [ "$HEIGHT" = "" ]; then export HEIGHT=25; fi
 
 exec 3>&1
-selection=$(dialog --menu "Please select an OS" $(($HEIGHT - 2)) $(($WIDTH - 4)) "$counter" "$@" 2>&1 1>&3)
-
+if [ "$selection" = "" ]; then
+    selection=0
+fi
+until [ "$selection" -gt "0" ] && [ "$selection" -le "$counter" ]; do
+    selection=$(dialog --menu "Please select an OS" $(($HEIGHT - 2)) $(($WIDTH - 4)) "$counter" "$@" 2>&1 1>&3)
+    if [ "$selection" = "" ]; then
+        selection=0
+    fi
+done
 exec 3>&-
 clear
 

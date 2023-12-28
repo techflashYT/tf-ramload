@@ -37,10 +37,31 @@ dialogDir="$PWD/deps/dialog"
 ncursesFile="https://ftp.gnu.org/gnu/ncurses/ncurses-6.4.tar.gz"
 ncursesDir="$PWD/deps/ncurses"
 
+opensslFile="https://github.com/openssl/openssl/releases/download/openssl-3.2.0/openssl-3.2.0.tar.gz"
+opensslDir="$PWD/deps/openssl"
+
+libxcryptFile="https://github.com/besser82/libxcrypt/releases/download/v4.4.36/libxcrypt-4.4.36.tar.xz"
+libxcryptDir="$PWD/deps/libxcrypt"
+
+zlibFile="https://codeload.github.com/madler/zlib/zip/643e17b7498d12ab8d15565662880579692f769d"
+zlibDir="$PWD/deps/zlib"
+
+pamFile="https://github.com/linux-pam/linux-pam/releases/download/v1.5.3/Linux-PAM-1.5.3.tar.xz"
+pamDir="$PWD/deps/pam"
+
+libmdFile="https://libbsd.freedesktop.org/releases/libmd-1.1.0.tar.xz"
+libmdDir="$PWD/deps/libmd"
+
+auditFile="https://github.com/linux-audit/audit-userspace/archive/v3.1.2/audit-userspace-v3.1.2.tar.gz"
+auditDir="$PWD/deps/audit"
+
+libcapngFile="https://github.com/stevegrubb/libcap-ng/archive/v0.8.4/libcap-ng-0.8.4.tar.gz"
+libcapngDir="$PWD/deps/libcap-ng"
 
 FILES=(
     "$PWD/ramload.sh:/init"
     "$PWD/goLoad.sh:/goLoad"
+    "$PWD/sshd_config:/etc/ssh/sshd_config"
     "$busyboxDir/busybox:/usr/bin/busybox"
     "$util_linuxDir/.libs/blkid:/usr/bin/blkid"
     "$util_linuxDir/.libs/libblkid.so:/usr/lib/libblkid.so"
@@ -71,6 +92,26 @@ FILES=(
     "$ncursesDir/lib/libmenuw.so.6:/usr/lib/libmenuw.so.6"
     "$ncursesDir/lib/libmenuw.so.6.4:/usr/lib/libmenuw.so.6.4"
     "$ncursesDir/progs/clear:/usr/bin/clear"
+    "$opensslDir/libcrypto.so:/usr/lib/libcrypto.so"
+    "$opensslDir/libcrypto.so.3:/usr/lib/libcrypto.so.3"
+    "$libxcryptDir/.libs/libcrypt.so:/usr/lib/libcrypt.so"
+    "$libxcryptDir/.libs/libcrypt.so.2:/usr/lib/libcrypt.so.2"
+    "$libxcryptDir/.libs/libcrypt.so.2.0.0:/usr/lib/libcrypt.so.2.0.0"
+    "$zlibDir/libz.so:/usr/lib/libz.so"
+    "$zlibDir/libz.so.1:/usr/lib/libz.so.1"
+    "$zlibDir/libz.so.1.3.0.1-motley:/usr/lib/libz.so.1.3.0.1-motley"
+    "$pamDir/libpam/.libs/libpam.so:/usr/lib/libpam.so"
+    "$pamDir/libpam/.libs/libpam.so.0:/usr/lib/libpam.so.0"
+    "$pamDir/libpam/.libs/libpam.so.0.85.1:/usr/lib/libpam.so.0.85.1"
+    "$libmdDir/src/.libs/libmd.so:/usr/lib/libmd.so"
+    "$libmdDir/src/.libs/libmd.so.0:/usr/lib/libmd.so.0"
+    "$libmdDir/src/.libs/libmd.so.0.1.0:/usr/lib/libmd.so.0.1.0"
+    "$auditDir/lib/.libs/libaudit.so:/usr/lib/libaudit.so"
+    "$auditDir/lib/.libs/libaudit.so.1:/usr/lib/libaudit.so.1"
+    "$auditDir/lib/.libs/libaudit.so.1.0.0:/usr/lib/libaudit.so.1.0.0"
+    "$libcapngDir/src/.libs/libcap-ng.so:/usr/lib/libcap-ng.so"
+    "$libcapngDir/src/.libs/libcap-ng.so.0:/usr/lib/libcap-ng.so.0"
+    "$libcapngDir/src/.libs/libcap-ng.so.0.0.0:/usr/lib/libcap-ng.so.0.0.0"
 
     "$dialogDir/dialog:/usr/bin/dialog"
     "/usr/share/terminfo/l/linux"
@@ -81,19 +122,25 @@ function dload() {
     file="$2"
     config="$3"
     name="$4"
+    optdownloadName="$5"
 
     localfname="$(basename "$file")"
     mkdir -p "$(dirname "$dir")"
     if ! [ -d "$dir" ]; then
-        if ! wget "$file"; then
+        if [ "$optdownloadName" != "" ]; then
+            args="-O $optdownloadName"
+            localfname="$optdownloadName"
+        fi
+
+        if ! wget "$file" $args; then
             echo "$name download failed with exit code $?" >&2
             exit 1
         fi
-        tar xf "$localfname"
         # e.g. move busybox-1.36.1 to busybox
         case "$localfname" in
-            *.tar*) mv "${localfname//\.tar*/}" "$dir" ;;
-            *.tgz)  mv "${localfname//\.tgz/}" "$dir" ;;
+            *.tar*)       tar xf    "$localfname"; mv "${localfname//\.tar*/}" "$dir" ;;
+            *.tgz)        tar xf    "$localfname"; mv "${localfname//\.tgz/}" "$dir"  ;;
+            *_github.zip) unzip -qq "$localfname"; mv "${localfname//_github.zip/}"-* "$dir"  ;;
             *) echo "UNIMPLEMENTED FILE TYPE: $localfname" ;;
         esac
             
@@ -108,84 +155,59 @@ function dload() {
 }
 
 
+stdbuild() {
+    echo "build $2"
+    pushd "$2" > /dev/null || exit 1
+    if [ "$1" != "" ] && ! { [ -f Makefile ] || [ -f makefile ]; } ; then
+        if ! [ -f configure ] && ! [ -f Configure ]; then
+            autoreconf -fiv
+        fi
+        $1
+    fi
+    make -j"$(nproc)" $3
+    popd > /dev/null || exit 1
+}
+
+
 rm -rf "$build"
 mkdir "$build/initramfs" -p
 
 
-# check if we have busybox
 dload "$busyboxDir" "$busyboxFile" "$busyboxConfig" "Busybox"
-
-# check if we have the Linux kernel
 dload "$linuxDir" "$linuxFile" "$linuxConfig" "Linux kernel"
-
-# check if we have util-linux
 dload "$util_linuxDir" "$util_linuxFile" "" "util-linux"
-
-# check if we have OpenSSH
 dload "$opensshDir" "$opensshFile" "" "OpenSSH"
-
-# check if we have glibc
 dload "$glibcDir" "$glibcFile" "" "glibc"
-
-# check if we have ncurses
 dload "$ncursesDir" "$ncursesFile" "" "ncurses"
-
-# check if we have dialog
 dload "$dialogDir" "$dialogFile" "" "dialog app"
+dload "$opensslDir" "$opensslFile" "" "OpenSSL"
+dload "$libxcryptDir" "$libxcryptFile" "" "libxcrypt"
+dload "$zlibDir" "$zlibFile" "" "zlib" "zlib_github.zip"
+dload "$pamDir" "$pamFile" "" "PAM"
+dload "$libmdDir" "$libmdFile" "" "libmd"
+dload "$auditDir" "$auditFile" "" "audit" "audit-userspace-3.1.2.tar.gz"
+dload "$libcapngDir" "$libcapngFile" "" "libcap-ng"
 
+stdbuild "" "$busyboxDir"
 
-# build busybox
-pushd "$busyboxDir" > /dev/null || exit 1
-make -j"$(nproc)"
-popd > /dev/null || exit 1
-
-
-# build the Linux kernel
-pushd "$linuxDir" > /dev/null || exit 1
-make -j"$(nproc)"
-popd > /dev/null || exit 1
+stdbuild "" "$linuxDir"
 cp "$kernelPath" "$build/"
 
-
-# build util-linux
-pushd "$util_linuxDir" > /dev/null || exit 1
-if ! [ -f Makefile ]; then
-    ./configure
+stdbuild "./configure" "$util_linuxDir" "blkid"
+stdbuild "./configure --with-shared --enable-widec --with-versioned-syms" "$ncursesDir"
+stdbuild "./configure --with-ncurses --without-ncursesw" "$dialogDir"
+stdbuild "./configure --with-security-key-builtin --with-ssl-engine --with-pam --without-zlib-version-check --prefix=/usr --sysconfdir=/etc/ssh" "$opensshDir"
+stdbuild "./Configure shared enable-ktls enable-ec_nistp_64_gcc_128 linux-x86_64" "$opensslDir"
+stdbuild "./configure --disable-static --enable-hashes=strong,glibc --enable-obsolete-api=no --disable-failure-tokens" "$libxcryptDir"
+if [ "$(sha256sum "$zlibDir/Makefile")" = "ef23b08ce01239843f1ded3f373bfc432627a477d62f945cbf63b2ac03db118a  $zlibDir/Makefile" ]; then
+    rm "$zlibDir/Makefile"
 fi
-# we only need blkid
-make blkid -j"$(nproc)"
-popd > /dev/null || exit 1
-
-# build ncurses
-pushd "$ncursesDir" > /dev/null || exit 1
-if ! [ -f Makefile ]; then
-    ./configure --with-shared --enable-widec --with-versioned-syms
-fi
-make -j8
-popd > /dev/null || exit 1
-
-# build dialog
-pushd "$dialogDir" > /dev/null || exit 1
-if ! [ -f makefile ]; then
-    ./configure --with-ncurses --without-ncursesw
-fi
-make -j8
-popd > /dev/null || exit 1
-
-# build OpenSSH
-pushd "$opensshDir" > /dev/null || exit 1
-if ! [ -f configure ]; then
-    autoreconf
-fi
-if ! [ -f Makefile ]; then
-    ./configure \
-    --with-security-key-builtin \
-    --with-ssl-engine --with-pam \
-    --without-zlib-version-check
-fi
-make -j"$(nproc)"
-popd > /dev/null || exit 1
-
+stdbuild "./configure" "$zlibDir"
+stdbuild "./configure" "$pamDir"
+stdbuild "./configure" "$libmdDir"
+stdbuild "./configure" "$auditDir"
+touch "$libcapngDir/NEWS"
+stdbuild "./configure" "$libcapngDir"
 
 # build glibc
 pushd "${glibcDir}" > /dev/null || exit 1
@@ -201,10 +223,8 @@ pushd "${glibcDir}_build" > /dev/null || exit 1
 # If this goes wrong at any point, your system glibc may be overwritten
 # please do not run this as root!
 if ! [ -f Makefile ]; then
-    "${glibcDir}/configure" \
-    --prefix="/usr"
+    "${glibcDir}/configure" --prefix="/usr"
 fi
-make -j"$(nproc)"
 if ! [ -f "${glibcDir}_install/lib64/ld-linux-x86-64.so.2" ]; then
     make -j"$(nproc)" DESTDIR="${glibcDir}_install" install
 fi
@@ -213,7 +233,7 @@ popd > /dev/null || exit 1
 
 # make base initrd structure
 pushd "$build/initramfs" > /dev/null || exit 1
-mkdir -p usr/bin usr/sbin usr/lib usr/share/terminfo/l etc
+mkdir -p usr/bin usr/sbin usr/lib usr/share/terminfo/l etc/ssh
 ln -s usr/bin bin
 ln -s usr/sbin sbin
 ln -s usr/lib lib
