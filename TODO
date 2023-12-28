@@ -3,4 +3,4 @@
 
 
 === OpenSSH ===
-- Get OpenSSL in here so that it works
+- Autosetup hostkeys
