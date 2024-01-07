@@ -5,7 +5,6 @@ export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 v_ma=0
 v_mi=0
 v_pa=1
-echo "Techflash RAMLoad v$v_ma.$v_mi.$v_pa starting up..."
 
 
 debug() {
@@ -19,6 +18,14 @@ info() {
 warn() {
     printf "\x1b[1;33m[WARN] %s\x1b[0m\n" "$1"
 }
+
+error() {
+    printf "\x1b[1;31m[ERROR] %s\x1b[0m\n" "$1"
+}
+
+
+
+info "Techflash RAMLoad v$v_ma.$v_mi.$v_pa starting up..."
 
 # mount stuff
 debug "Mounting filesystems..."
@@ -35,71 +42,32 @@ debug "Updating ldconfig..."
 ldconfig
 debug "ldconfig updated"
 
+debug "Setting up sshd group & user"
 touch /etc/group
 touch /etc/passwd
 addgroup -S sshd
 adduser -SH sshd -G sshd
 
-for dev in $(echo /sys/class/block/* | tr ' ' '\n' | grep -vE 'loop[0-9]'); do
-    # get disk size
-    size=$(cat "$dev/size")
+. /detectDisks
 
-    # get some env vars about the disk
-    eval "$(blkid -o export "/dev/$(basename "$dev")")"
-
-    # double check which one it is
-    if [ "$PTTYPE" != "" ] && [ "$TYPE" = "" ]; then
-        TYPE="$PTTYPE"
-    fi
-
-    # print the info
-    debug "blkdev: $(basename "$dev"); size=$(($size * 512)) bytes; type=$TYPE"
-
-    unset size
-
-    # print info about the type, particularly if it is odd
-    case "$TYPE" in
-        "dos"|"gpt")
-            str="a full disk w/ partition table, not a filesystem.  Skipping." ;;
-        "")
-            str="an empty/unknown filesystem.  Skipping." ;;
-        "ext"*|"xfs"|"btrfs")
-            str="a normal on-disk filesystem.  Marked for checking."
-            checkme=true ;;
-        "vfat"|*"msdos")
-            str="\
-some form of FAT.  EFI System Partition?  \
-Either way, neither suitable for a distro nor shared info partition.  Skipping." ;;
-        *)
-            str="an unknown filesystem type \"$TYPE\"!  Please report this error!  Skipping." ;;
-    esac
-    unset PTUUID PARTUUID BLOCK_SIZE DEVNAME PART_SIZE TYPE UUID PARTLABEL PTTYPE
-
-    info "$(basename "$dev") is $str"
-    unset str
-    if [ "$checkme" = "true" ]; then
-        unset checkme
-        
-        # check the type of this partition
-        mkdir -p /mnt/test
-        mount "/dev/$(basename "$dev")" /mnt/test
-        if [ -f /mnt/test/.tf_ramload_info ]; then
-            . /mnt/test/.tf_ramload_info
-            info "Found distro \"$DISTRO_NAME\" on disk type \"$DISK_TYPE\" with estimated load time of \"$LOAD_TIME\"!"
-            cp /mnt/test/.tf_ramload_info "/$(basename "$dev").found_distro"
-            umount /mnt/test
-        elif [ -f /mnt/test/.tf_ramload_shared_storage ]; then
-            . /mnt/test/.tf_ramload_shared_storage
-            info "Found shared storage with *info TBD*!"
-            umount /mnt/test
-            mount "/dev/$(basename "$dev")" /mnt/shared_storage
-        else
-            warn "Disk neither contains a distro, nor shared storage compatible with Techflash RAMLoad!" >&2
-            umount /mnt/test
-        fi
-    fi
+# did we mount the shared storage?
+while ! mountpoint -q /mnt/shared_storage; do
+    error "No shared storage detected!  Dropping to a shell so you can examine the situation."
+    info "Shared storage is necessary to store SSH Keys, user accounts,"
+    info "and any add-in files you want to add to the distro before boot."
+    info ""
+    info "If you simply forgot to make one, go reboot, add one, and"
+    info "make the \`.tf_ramload_shared_storage' file (see the docs for format)."
+    info "The whole partition doesn't need to be more than 100M or so."
+    info ""
+    info "If you have one that just wasn't detected, you can try to debug it here."
+    info "When the problem is fixed, either reboot the machine, or exit your shell."
+    info "We will try to continue the boot process after you exit"
+    warn "If it fails, you will get a shell again."
+    info "OK.  Good luck!"
+    ash
+    . /detectDisks
 done
-ash
 counter=0
 set -- ""
 for f in /*.found_distro; do
