@@ -58,6 +58,8 @@ auditDir="$PWD/deps/audit"
 libcapngFile="https://github.com/stevegrubb/libcap-ng/archive/v0.8.4/libcap-ng-0.8.4.tar.gz"
 libcapngDir="$PWD/deps/libcap-ng"
 
+ncpu="${ncpu:-$(nproc)}"
+
 FILES=(
     "$PWD/ramload.sh:/init"
     "$PWD/goLoad.sh:/goLoad"
@@ -118,6 +120,9 @@ FILES=(
     "$dialogDir/dialog:/usr/bin/dialog"
     "/usr/share/terminfo/l/linux"
 )
+if [ -n "$CC" ]; then
+	makeArgs="CC=$CC"
+fi
 
 function dload() {
     dir="$1"
@@ -172,7 +177,7 @@ stdbuild() {
         fi
         $1
     fi
-    make -j"$(nproc)" "$3"
+    make -j"$(nproc)" "$3" "$makeArgs"
     popd > /dev/null || exit 1
 }
 
@@ -234,7 +239,7 @@ if ! [ -f Makefile ]; then
     "${glibcDir}/configure" --prefix="/usr" --disable-mathvec
 fi
 if ! [ -f "${glibcDir}_install/lib64/ld-linux-x86-64.so.2" ]; then
-    make -j"$(nproc)" DESTDIR="${glibcDir}_install" install
+    make -j"$ncpu" DESTDIR="${glibcDir}_install" install
 fi
 popd > /dev/null || exit 1
 
