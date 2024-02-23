@@ -17,7 +17,7 @@ busyboxDir="$PWD/deps/busybox"
 busyboxFile="https://busybox.net/downloads/busybox-1.36.1.tar.bz2"
 busyboxConfig="$PWD/busyboxConfig"
 
-linuxFile="https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.6.8.tar.xz"
+linuxFile="https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.7.5.tar.xz"
 linuxDir="$PWD/deps/linux"
 linuxConfig="$PWD/linuxConfig"
 kernelPath="$linuxDir/arch/x86/boot/bzImage"
@@ -28,16 +28,16 @@ util_linuxFile="https://mirrors.edge.kernel.org/pub/linux/utils/util-linux/v2.39
 opensshFile="https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.6p1.tar.gz"
 opensshDir="$PWD/deps/openssh"
 
-glibcFile="https://ftp.gnu.org/gnu/glibc/glibc-2.38.tar.xz"
+glibcFile="https://ftp.gnu.org/gnu/glibc/glibc-2.39.tar.xz"
 glibcDir="$PWD/deps/glibc"
 
-dialogFile="https://invisible-mirror.net/archives/dialog/dialog-1.3-20231002.tgz"
+dialogFile="https://invisible-mirror.net/archives/dialog/dialog-1.3-20240101.tgz"
 dialogDir="$PWD/deps/dialog"
 
 ncursesFile="https://ftp.gnu.org/gnu/ncurses/ncurses-6.4.tar.gz"
 ncursesDir="$PWD/deps/ncurses"
 
-opensslFile="https://github.com/openssl/openssl/releases/download/openssl-3.2.0/openssl-3.2.0.tar.gz"
+opensslFile="https://github.com/openssl/openssl/releases/download/openssl-3.2.1/openssl-3.2.1.tar.gz"
 opensslDir="$PWD/deps/openssl"
 
 libxcryptFile="https://github.com/besser82/libxcrypt/releases/download/v4.4.36/libxcrypt-4.4.36.tar.xz"
@@ -46,13 +46,13 @@ libxcryptDir="$PWD/deps/libxcrypt"
 zlibFile="https://codeload.github.com/madler/zlib/zip/643e17b7498d12ab8d15565662880579692f769d"
 zlibDir="$PWD/deps/zlib"
 
-pamFile="https://github.com/linux-pam/linux-pam/releases/download/v1.5.3/Linux-PAM-1.5.3.tar.xz"
+pamFile="https://github.com/linux-pam/linux-pam/releases/download/v1.6.0/Linux-PAM-1.6.0.tar.xz"
 pamDir="$PWD/deps/pam"
 
 libmdFile="https://libbsd.freedesktop.org/releases/libmd-1.1.0.tar.xz"
 libmdDir="$PWD/deps/libmd"
 
-auditFile="https://github.com/linux-audit/audit-userspace/archive/v3.1.2/audit-userspace-v3.1.2.tar.gz"
+auditFile="https://github.com/linux-audit/audit-userspace/archive/v4.0/audit-userspace-v4.0.tar.gz"
 auditDir="$PWD/deps/audit"
 
 libcapngFile="https://github.com/stevegrubb/libcap-ng/archive/v0.8.4/libcap-ng-0.8.4.tar.gz"
@@ -125,24 +125,28 @@ function dload() {
     config="$3"
     name="$4"
     optdownloadName="$5"
+    args=""
 
     localfname="$(basename "$file")"
-    mkdir -p "$(dirname "$dir")"
+    echo "dload start"
+    echo "args = $@; optdownloadName=$optdownloadName; localfname=$localfname"
     if ! [ -d "$dir" ]; then
+        mkdir -p "$(dirname "$dir")"
         if [ "$optdownloadName" != "" ]; then
             args="-O $optdownloadName"
             localfname="$optdownloadName"
         fi
 
-        if ! wget "$file" $args; then
+	echo "download $file"
+        if ! wget "$file" --continue $args; then
             echo "$name download failed with exit code $?" >&2
             exit 1
         fi
         # e.g. move busybox-1.36.1 to busybox
         case "$localfname" in
-            *.tar*)       tar xf    "$localfname"; mv "${localfname//\.tar*/}" "$dir" ;;
-            *.tgz)        tar xf    "$localfname"; mv "${localfname//\.tgz/}" "$dir"  ;;
-            *_github.zip) unzip -qq "$localfname"; mv "${localfname//_github.zip/}"-* "$dir"  ;;
+            *.tar*)       echo "tar $localfname; $dir"; tar xf    "$localfname"; mv "${localfname//\.tar*/}" "$dir" ;;
+            *.tgz)        echo "tgz $localfname; $dir"; tar xf    "$localfname"; mv "${localfname//\.tgz/}" "$dir"  ;;
+            *_github.zip) echo "zip $localfname; $dir"; unzip -qq "$localfname"; mv "${localfname//_github.zip/}"-* "$dir"  ;;
             *) echo "UNIMPLEMENTED FILE TYPE: $localfname" ;;
         esac
             
@@ -152,7 +156,9 @@ function dload() {
             cp "$config" "$dir/.config"
         fi
 
+	echo "delete $localfname"
         rm "$localfname"
+	echo "done"
     fi
 }
 
@@ -187,7 +193,7 @@ dload "$libxcryptDir" "$libxcryptFile" "" "libxcrypt"
 dload "$zlibDir" "$zlibFile" "" "zlib" "zlib_github.zip"
 dload "$pamDir" "$pamFile" "" "PAM"
 dload "$libmdDir" "$libmdFile" "" "libmd"
-dload "$auditDir" "$auditFile" "" "audit" "audit-userspace-3.1.2.tar.gz"
+dload "$auditDir" "$auditFile" "" "audit" "audit-userspace-4.0.tar.gz"
 dload "$libcapngDir" "$libcapngFile" "" "libcap-ng"
 
 stdbuild "" "$busyboxDir"
