@@ -2,4 +2,5 @@ _buildTmp
 *.o
 deps
 *.tar*
+*.zip
 *.qcow2
