@@ -231,7 +231,7 @@ pushd "${glibcDir}_build" > /dev/null || exit 1
 # If this goes wrong at any point, your system glibc may be overwritten
 # please do not run this as root!
 if ! [ -f Makefile ]; then
-    "${glibcDir}/configure" --prefix="/usr"
+    "${glibcDir}/configure" --prefix="/usr" --disable-mathvec
 fi
 if ! [ -f "${glibcDir}_install/lib64/ld-linux-x86-64.so.2" ]; then
     make -j"$(nproc)" DESTDIR="${glibcDir}_install" install
