@@ -129,7 +129,7 @@ function dload() {
 
     localfname="$(basename "$file")"
     echo "dload start"
-    echo "args = $@; optdownloadName=$optdownloadName; localfname=$localfname"
+    echo "args = $*; optdownloadName=$optdownloadName; localfname=$localfname"
     if ! [ -d "$dir" ]; then
         mkdir -p "$(dirname "$dir")"
         if [ "$optdownloadName" != "" ]; then
@@ -138,7 +138,7 @@ function dload() {
         fi
 
 	echo "download $file"
-        if ! wget "$file" --continue $args; then
+        if ! wget "$file" --continue "$args"; then
             echo "$name download failed with exit code $?" >&2
             exit 1
         fi
@@ -172,7 +172,7 @@ stdbuild() {
         fi
         $1
     fi
-    make -j"$(nproc)" $3
+    make -j"$(nproc)" "$3"
     popd > /dev/null || exit 1
 }
 
