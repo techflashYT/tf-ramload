@@ -32,7 +32,7 @@ Either way, neither suitable for a distro nor shared info partition.  Skipping."
         *)
             str="an unknown filesystem type \"$TYPE\"!  Please report this error!  Skipping." ;;
     esac
-    unset PTUUID PARTUUID BLOCK_SIZE DEVNAME PART_SIZE TYPE UUID PARTLABEL PTTYPE
+    unset PTUUID PARTUUID BLOCK_SIZE DEVNAME PART_SIZE TYPE UUID PARTLABEL PTTYPE mountArgs
 
     info "$(basename "$dev") is $str"
     unset str
@@ -42,6 +42,11 @@ Either way, neither suitable for a distro nor shared info partition.  Skipping."
         # check the type of this partition
         mkdir -p /mnt/test
         mount "/dev/$(basename "$dev")" /mnt/test
+        if [ -f /mnt/test/@/.tf_ramload_info ]; then
+		umount /mnt/test
+		mountArgs="-o subvol=@"
+		mount "/dev/$(basename "$dev")" /mnt/test $mountArgs
+	fi
         if [ -f /mnt/test/.tf_ramload_info ]; then
             . /mnt/test/.tf_ramload_info
             info "Found distro \"$DISTRO_NAME\" on disk type \"$DISK_TYPE\" with estimated load time of \"$LOAD_TIME\"!"

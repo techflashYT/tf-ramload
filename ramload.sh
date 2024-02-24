@@ -122,4 +122,4 @@ disk="$(eval "echo \$distroNum_$selection")"
 killall -9 sshd
 
 echo "PID of ramload is $$"
-exec /goLoad "$disk"
+exec /goLoad "$disk" "$mountArgs"
