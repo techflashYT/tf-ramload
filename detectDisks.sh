@@ -12,7 +12,7 @@ for dev in $(echo /sys/class/block/* | tr ' ' '\n' | grep -vE 'loop[0-9]'); do
     fi
 
     # print the info
-    debug "blkdev: $(basename "$dev"); size=$(($size * 512)) bytes; type=$TYPE"
+    debug "blkdev: $(basename "$dev"); size=$((size * 512)) bytes; type=$TYPE"
 
     unset size
 

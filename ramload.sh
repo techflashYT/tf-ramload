@@ -65,13 +65,14 @@ while ! mountpoint -q /mnt/shared_storage; do
     info "We will try to continue the boot process after you exit"
     warn "If it fails, you will get a shell again."
     info "OK.  Good luck!"
+    break
     ash
     . /detectDisks
 done
 counter=0
 set -- ""
 for f in /*.found_distro; do
-    export counter=$(($counter + 1))
+    export counter=$((counter + 1))
     . "$f"
 
     # Remove `.found_distro` and the leading `/`.
@@ -83,7 +84,18 @@ for f in /*.found_distro; do
         set -- "$@" $counter "$DISTRO_NAME [$DISK_TYPE] (ETA $LOAD_TIME)"
     fi
 done
-ash
+cmdline=$(cat /proc/cmdline)
+
+minutes=$(echo "$cmdline" | grep -o 'auto_kill=[^ ]*' | cut -d'=' -f2)
+
+# Check if the parameter was found
+if [ -n "$minutes" ]; then
+    seconds=$((minutes *  60))
+fi
+
+echo "seconds=$seconds"
+(sleep $seconds; echo "REBOOTING RIGHT NOW"; sleep 2; echo b > /proc/sysrq-trigger) &
+
 
 # Use dialog to create a menu from the menu items
 if [ "$WIDTH" = "" ]; then export WIDTH=80; fi
@@ -94,7 +106,7 @@ if [ "$selection" = "" ]; then
     selection=0
 fi
 until [ "$selection" -gt "0" ] && [ "$selection" -le "$counter" ]; do
-    selection=$(dialog --menu "Please select an OS" $(($HEIGHT - 2)) $(($WIDTH - 4)) "$counter" "$@" 2>&1 1>&3)
+    selection=$(dialog --menu "Please select an OS" $((HEIGHT - 2)) $((WIDTH - 4)) "$counter" "$@" 2>&1 1>&3)
     if [ "$selection" = "" ]; then
         selection=0
     fi
