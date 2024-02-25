@@ -1,1 +1,1 @@
-qemu-system-x86_64 -kernel _buildTmp/bzImage -initrd _buildTmp/initramfs.img -append 'init=/bin/sh loglevel=6 auto_kill=30'  -device virtio-blk-pci,drive=drive0,id=virtblk0,num-queues=4 -drive file=disk.qcow2,if=none,id=drive0 -m 16G --enable-kvm
+qemu-system-x86_64 -kernel _buildTmp/bzImage -initrd _buildTmp/initramfs.img -append 'init=/bin/sh loglevel=6 auto_kill=30' -m 16G --enable-kvm $@ -device virtio-blk-pci,drive=drive0,id=virtblk0,num-queues=4 -drive file=disk.qcow2,if=none,id=drive0 
