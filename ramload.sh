@@ -71,6 +71,16 @@ while ! mountpoint -q /mnt/shared_storage; do
 done
 counter=0
 set -- ""
+distros=$(ls /*.found_distro)
+while [ -z "$distros" ]; do
+	error "No distros found!"
+	info "Dropping you to a shell to examine the situation."
+	warn "If this fails, you will get a shell again."
+	info "OK.  Good luck!"
+	ash
+	. /detectDisks
+	distros=$(ls /*.found_distro)
+done
 for f in /*.found_distro; do
     export counter=$((counter + 1))
     . "$f"
