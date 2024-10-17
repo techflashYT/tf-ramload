@@ -48,6 +48,10 @@ touch /etc/passwd
 addgroup -S sshd
 adduser -SH sshd -G sshd
 
+debug "Give USB a few seconds to probe"
+sleep 3
+
+debug "Detecting disks"
 . /detectDisks
 
 # did we mount the shared storage?

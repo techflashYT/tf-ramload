@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 # MODULES=(
 #     virtio_net net_failover
@@ -17,7 +17,7 @@ busyboxDir="$PWD/deps/busybox"
 busyboxFile="https://busybox.net/downloads/busybox-1.36.1.tar.bz2"
 busyboxConfig="$PWD/busyboxConfig"
 
-linuxFile="https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.7.5.tar.xz"
+linuxFile="https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.11.tar.xz"
 linuxDir="$PWD/deps/linux"
 linuxConfig="$PWD/linuxConfig"
 kernelPath="$linuxDir/arch/x86/boot/bzImage"
@@ -31,13 +31,13 @@ opensshDir="$PWD/deps/openssh"
 glibcFile="https://ftp.gnu.org/gnu/glibc/glibc-2.39.tar.xz"
 glibcDir="$PWD/deps/glibc"
 
-dialogFile="https://invisible-mirror.net/archives/dialog/dialog-1.3-20240101.tgz"
+dialogFile="https://invisible-island.net/archives/dialog/dialog-1.3-20240619.tgz"
 dialogDir="$PWD/deps/dialog"
 
-ncursesFile="https://ftp.gnu.org/gnu/ncurses/ncurses-6.4.tar.gz"
+ncursesFile="https://ftp.gnu.org/gnu/ncurses/ncurses-6.5.tar.gz"
 ncursesDir="$PWD/deps/ncurses"
 
-opensslFile="https://github.com/openssl/openssl/releases/download/openssl-3.2.1/openssl-3.2.1.tar.gz"
+opensslFile="https://github.com/openssl/openssl/releases/download/openssl-3.3.2/openssl-3.3.2.tar.gz"
 opensslDir="$PWD/deps/openssl"
 
 libxcryptFile="https://github.com/besser82/libxcrypt/releases/download/v4.4.36/libxcrypt-4.4.36.tar.xz"
@@ -46,16 +46,16 @@ libxcryptDir="$PWD/deps/libxcrypt"
 zlibFile="https://codeload.github.com/madler/zlib/zip/643e17b7498d12ab8d15565662880579692f769d"
 zlibDir="$PWD/deps/zlib"
 
-pamFile="https://github.com/linux-pam/linux-pam/releases/download/v1.6.0/Linux-PAM-1.6.0.tar.xz"
+pamFile="https://github.com/linux-pam/linux-pam/releases/download/v1.6.1/Linux-PAM-1.6.1.tar.xz"
 pamDir="$PWD/deps/pam"
 
 libmdFile="https://libbsd.freedesktop.org/releases/libmd-1.1.0.tar.xz"
 libmdDir="$PWD/deps/libmd"
 
-auditFile="https://github.com/linux-audit/audit-userspace/archive/v4.0/audit-userspace-v4.0.tar.gz"
+auditFile="https://github.com/linux-audit/audit-userspace/archive/v4.0.2/audit-userspace-v4.0.2.tar.gz"
 auditDir="$PWD/deps/audit"
 
-libcapngFile="https://github.com/stevegrubb/libcap-ng/archive/v0.8.4/libcap-ng-0.8.4.tar.gz"
+libcapngFile="https://github.com/stevegrubb/libcap-ng/archive/v0.8.5/libcap-ng-0.8.5.tar.gz"
 libcapngDir="$PWD/deps/libcap-ng"
 
 ncpu="${ncpu:-$(nproc)}"
@@ -85,16 +85,16 @@ FILES=(
     "${glibcDir}_install/sbin/ldconfig:/usr/sbin/ldconfig"
     "$ncursesDir/lib/libncursesw.so:/usr/lib/libncursesw.so"
     "$ncursesDir/lib/libncursesw.so.6:/usr/lib/libncursesw.so.6"
-    "$ncursesDir/lib/libncursesw.so.6.4:/usr/lib/libncursesw.so.6.4"
+    "$ncursesDir/lib/libncursesw.so.6.5:/usr/lib/libncursesw.so.6.5"
     "$ncursesDir/lib/libpanelw.so:/usr/lib/libpanelw.so"
     "$ncursesDir/lib/libpanelw.so.6:/usr/lib/libpanelw.so.6"
-    "$ncursesDir/lib/libpanelw.so.6.4:/usr/lib/libpanelw.so.6.4"
+    "$ncursesDir/lib/libpanelw.so.6.5:/usr/lib/libpanelw.so.6.5"
     "$ncursesDir/lib/libformw.so:/usr/lib/libformw.so"
     "$ncursesDir/lib/libformw.so.6:/usr/lib/libformw.so.6"
-    "$ncursesDir/lib/libformw.so.6.4:/usr/lib/libformw.so.6.4"
+    "$ncursesDir/lib/libformw.so.6.5:/usr/lib/libformw.so.6.5"
     "$ncursesDir/lib/libmenuw.so:/usr/lib/libmenuw.so"
     "$ncursesDir/lib/libmenuw.so.6:/usr/lib/libmenuw.so.6"
-    "$ncursesDir/lib/libmenuw.so.6.4:/usr/lib/libmenuw.so.6.4"
+    "$ncursesDir/lib/libmenuw.so.6.5:/usr/lib/libmenuw.so.6.5"
     "$ncursesDir/progs/clear:/usr/bin/clear"
     "$opensslDir/libcrypto.so:/usr/lib/libcrypto.so"
     "$opensslDir/libcrypto.so.3:/usr/lib/libcrypto.so.3"
@@ -142,10 +142,10 @@ function dload() {
             localfname="$optdownloadName"
         fi
 
-	echo "download $file"
-        if ! wget "$file" --continue "$args"; then
+	echo "download $file with $args"
+        if ! wget "$file" --continue $args; then
             echo "$name download failed with exit code $?" >&2
-            exit 1
+	    exit 1
         fi
         # e.g. move busybox-1.36.1 to busybox
         case "$localfname" in
@@ -198,7 +198,7 @@ dload "$libxcryptDir" "$libxcryptFile" "" "libxcrypt"
 dload "$zlibDir" "$zlibFile" "" "zlib" "zlib_github.zip"
 dload "$pamDir" "$pamFile" "" "PAM"
 dload "$libmdDir" "$libmdFile" "" "libmd"
-dload "$auditDir" "$auditFile" "" "audit" "audit-userspace-4.0.tar.gz"
+dload "$auditDir" "$auditFile" "" "audit" "audit-userspace-4.0.2.tar.gz"
 dload "$libcapngDir" "$libcapngFile" "" "libcap-ng"
 
 stdbuild "" "$busyboxDir"
